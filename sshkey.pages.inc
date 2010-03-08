@@ -1,6 +1,6 @@
 <?php
 
-function sshkey_page_list_public_keys($user=NULL) {
+function sshkey_page_list_public_keys($user = NULL) {
   drupal_add_css(drupal_get_path('module', 'sshkey') . '/css/sshkey.css');
 
   $keys = sshkey_user_public_keys_list($user->uid);
@@ -146,10 +146,6 @@ function sshkey_add_public_key_form_submit($form, $form_state) {
   }
 }
 
-function sshkey_page_edit_public_key($key) {
-  return drupal_get_form('sshkey_edit_public_key_form', $key);
-}
-
 function sshkey_edit_public_key_form($form_state, $key) {
   $form = array();
   $data = sshkey_get_public_key_data($key['fingerprint']);
@@ -210,10 +206,6 @@ function sshkey_edit_public_key_form_submit($form, $form_state) {
 
   sshkey_public_key_update($key['fingerprint'], $name);
   drupal_goto();
-}
-
-function sshkey_page_delete_public_key($key) {
-  return drupal_get_form('sshkey_delete_public_key_form', $key);
 }
 
 function sshkey_delete_public_key_form($form_state, $key) {

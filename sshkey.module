@@ -36,8 +36,8 @@ function sshkey_menu() {
 
   $menu['user/%user/sshkeys/%sshkey_public_key/edit'] = array(
     'title' => 'Edit',
-    'page callback' => 'sshkey_page_edit_public_key',
-    'page arguments' => array(3),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('sshkey_edit_public_key_form', 3),
     'access callback' => 'sshkey_edit_keys_access',
     'access arguments' => array(1, 3),
     'file' => 'sshkey.pages.inc',
@@ -47,8 +47,8 @@ function sshkey_menu() {
 
   $menu['user/%user/sshkeys/%sshkey_public_key/delete'] = array(
     'title' => 'Delete',
-    'page callback' => 'sshkey_page_delete_public_key',
-    'page arguments' => array(3),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('sshkey_delete_public_key_form', 3),
     'access callback' => 'sshkey_edit_keys_access',
     'access arguments' => array(1, 3),
     'file' => 'sshkey.pages.inc',
