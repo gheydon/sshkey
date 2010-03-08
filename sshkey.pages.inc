@@ -222,32 +222,16 @@ function sshkey_delete_public_key_form($form_state, $key) {
     '#value' => $key
   );
 
-  $form['warning'] = array(
-    '#type' => 'item',
-    '#title' => t('Warning'),
-    '#value' => t('Your\'e about to delete a public key, effectively disabling access for any services that use it. Are you sure that you want to do this?'),
-  );
-
-  $destination = 'user/' . $key->uid . '/sshkeys';
-  if (isset($_REQUEST['destination'])) {
-    $destination = $_REQUEST['destination'];
-  }
-  $form['cancel'] = array(
-    '#type' => 'item',
-    '#title' => t('Cancel'),
-    '#value' => l('Click here to cancel the deletion of the key', $destination),
-  );
-  
-  $form['delete'] = array(
-    '#type' => 'submit',
-    '#value' => t('Delete'),
-  );
-
-  return $form;
+  return confirm_form($form,
+    t('Are you sure you want to delete this public ssh key?'),
+    'user/' . $key['uid'] . '/sshkeys',
+    t('Your\'e about to delete a public key, effectively disabling access for any services that use it. Are you sure that you want to do this?'),
+    t('Delete')
+    );
 }
 
 function sshkey_delete_public_key_form_submit($form, $form_state) {
   $key = $form_state['values']['key_object'];
   sshkey_public_key_delete($key['fingerprint']);
-  drupal_goto();
+  drupal_goto('user/' . $key['uid'] . '/sshkeys');
 }
