@@ -1,9 +1,9 @@
 <?php
 
-function sshkey_page_list_public_keys($user = NULL) {
+function sshkey_page_list_public_keys($type, $id = NULL) {
   drupal_add_css(drupal_get_path('module', 'sshkey') . '/css/sshkey.css');
 
-  $keys = sshkey_user_public_keys_list($user->uid);
+  $keys = sshkey_user_public_keys_list($type, $id);
 
   $header = array(
     array('data' => t('Fingerprint'), 'class' => 'sshkey-public-key-fingerprint'),
@@ -34,18 +34,9 @@ function sshkey_page_list_public_keys($user = NULL) {
       ),
     );
 
-    $operations = array();
-    $operations[] = array(
-      'title' => t('Edit'),
-      'href'  => sprintf('user/%d/sshkeys/%s/edit', $key['uid'], $key['fingerprint']),
-      'query' => drupal_get_destination(),
-    );
-    $operations[] = array(
-      'title' => t('Delete'),
-      'href'  => sprintf('user/%d/sshkeys/%s/delete', $key['uid'], $key['fingerprint']),
-      'query' => drupal_get_destination(),
-    );
-
+    $operations = module_invoke_all('link', 'sshkey', $key);
+    drupal_alter('link', $operations, $key);
+    
     $rows[] = array(
       'data' => $data + array(
         'operations' => array(
@@ -58,16 +49,20 @@ function sshkey_page_list_public_keys($user = NULL) {
   }
 
   $table = theme('sshkey_table', $header, $rows, array('id' => 'sshkey-public-list-key'));
-  $form = drupal_get_form('sshkey_add_public_key_form', $user);
+  $form = drupal_get_form('sshkey_add_public_key_form', $type, $id);
   return theme('sshkey_public_key_list_page', $table, $form);
 }
 
-function sshkey_add_public_key_form($form_state, $account) {
+function sshkey_add_public_key_form($form_state, $type, $id) {
   $form = array();
 
-  $form['user_object'] = array(
+  $form['obj_type'] = array(
     '#type' => 'value',
-    '#value' => $account,
+    '#value' => $type,
+  );
+  $form['obj_id'] = array(
+    '#type' => 'value',
+    '#value' => $id,
   );
 
   $form['name'] = array(
@@ -98,7 +93,8 @@ function sshkey_add_public_key_form($form_state, $account) {
 function sshkey_add_public_key_form_validate($form, $form_state) {
   module_load_include('inc', 'sshkey');
   $values = $form_state['values'];
-  $user = $values['user_object'];
+  $type = $values['obj_type'];
+  $id = $values['obj_id'];
 
   try {
     // Parse the key
@@ -115,7 +111,7 @@ function sshkey_add_public_key_form_validate($form, $form_state) {
       // Be a bit helpful and tell the user if the key has been added by herself,
       // or if it's been added by someone else. Not sure how to treat the double-
       // add scenario.
-      if ($exists['uid'] == $user->uid) {
+      if ($exists['obj_type'] == $type && $exists['obj_id'] == $id) {
         form_set_error('public_key', t('You have already added this public key.'));
       }
       else {
@@ -134,10 +130,11 @@ function sshkey_add_public_key_form_validate($form, $form_state) {
 
 function sshkey_add_public_key_form_submit($form, $form_state) {
   $values = $form_state['values'];
-  $user = $values['user_object'];
+  $type = $values['obj_type'];
+  $id = $values['obj_id'];
 
   try {
-    sshkey_public_key_save($user->uid, $values['public_key'], $values['name']);
+    sshkey_public_key_save($type, $id, $values['public_key'], $values['name']);
   }
   catch (Exception $e) {
     drupal_set_message(t('There was a problem saving your key: !message', array(
@@ -146,7 +143,7 @@ function sshkey_add_public_key_form_submit($form, $form_state) {
   }
 }
 
-function sshkey_edit_public_key_form($form_state, $key) {
+function sshkey_edit_public_key_form($form_state, $type, $key) {
   $form = array();
   $data = sshkey_get_public_key_data($key['fingerprint']);
 
@@ -208,7 +205,7 @@ function sshkey_edit_public_key_form_submit($form, $form_state) {
   drupal_goto();
 }
 
-function sshkey_delete_public_key_form($form_state, $key) {
+function sshkey_delete_public_key_form($form_state, $type, $key) {
   $form['key_object'] = array(
     '#type' => 'value',
     '#value' => $key

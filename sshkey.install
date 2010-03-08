@@ -28,13 +28,20 @@ function sshkey_schema() {
         'default' => ''
       ),
       'created' => array(
+        'description' => 'The time that the key was created, as a Unix timestamp.',
         'type' => 'int',
         'not null' => TRUE,
         'default' => 0,
-        'description' => 'The time that the key was created, as a Unix timestamp.',
       ),
-      'uid' => array(
-        'description' => 'The account associated with the public key.',
+      'obj_type' => array(
+        'description' => 'The type of object that this key is associated with.',
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'obj_id' => array(
+        'description' => 'The object id associated with the public key.',
         'type' => 'int',
         'unsigned' => TRUE,
         'not null' => TRUE,
@@ -42,9 +49,34 @@ function sshkey_schema() {
     ),
     'primary key' => array('fingerprint'),
     'indexes' => array(
-      'uid' => array('uid'),
+      'obj' => array('obj_type', 'obj_id'),
     ),
   );
 
   return $schema;
+}
+
+/**
+ * Convert all the keys to the new object reference system.
+ */
+function sshkey_update_6000() {
+  $ret = array();
+  
+  db_drop_index($ret, 'sshkey', 'uid');
+  db_add_field($ret, 'sshkey', 'obj_type', array(
+    'description' => 'The type of object that this key is associated with.',
+    'type' => 'varchar',
+    'length' => 32,
+    'not null' => TRUE,
+    'default' => '',
+  ));
+  db_change_field($ret, 'sshkey', 'uid', 'obj_id', array(
+    'description' => 'The object id associated with the public key.',
+    'type' => 'int',
+    'unsigned' => TRUE,
+    'not null' => TRUE,
+  ));
+  db_add_index($ret, 'sshkey', 'obj', array('obj_type', 'obj_id'));
+  
+  return $ret;
 }

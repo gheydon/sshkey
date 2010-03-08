@@ -24,20 +24,20 @@ function sshkey_perm() {
 function sshkey_menu() {
   $menu = array();
 
-  $menu['user/%user/sshkeys'] = array(
+  $menu['user/%/sshkeys'] = array(
     'title' => 'SSH Keys',
     'page callback' => 'sshkey_page_list_public_keys',
-    'page arguments' => array(1),
+    'page arguments' => array('user', 1),
     'access callback' => 'sshkey_edit_keys_access',
     'access arguments' => array(1),
     'file' => 'sshkey.pages.inc',
     'type' => MENU_LOCAL_TASK,
   );
 
-  $menu['user/%user/sshkeys/%sshkey_public_key/edit'] = array(
+  $menu['user/%/sshkeys/%sshkey_public_key/edit'] = array(
     'title' => 'Edit',
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('sshkey_edit_public_key_form', 3),
+    'page arguments' => array('sshkey_edit_public_key_form', 'user', 3),
     'access callback' => 'sshkey_edit_keys_access',
     'access arguments' => array(1, 3),
     'file' => 'sshkey.pages.inc',
@@ -45,10 +45,10 @@ function sshkey_menu() {
     'weight' => 9,
   );
 
-  $menu['user/%user/sshkeys/%sshkey_public_key/delete'] = array(
+  $menu['user/%/sshkeys/%sshkey_public_key/delete'] = array(
     'title' => 'Delete',
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('sshkey_delete_public_key_form', 3),
+    'page arguments' => array('sshkey_delete_public_key_form', 'user', 3),
     'access callback' => 'sshkey_edit_keys_access',
     'access arguments' => array(1, 3),
     'file' => 'sshkey.pages.inc',
@@ -94,6 +94,27 @@ function sshkey_theme() {
   );
 
   return $theme;
+}
+
+/**
+ * Implementation of hook_link().
+ */
+function sshkey_link($type, $object) {
+  if ($type == 'sshkey' && $object['obj_type'] == 'user') {
+    $operations = array();
+    $operations['edit'] = array(
+      'title' => t('Edit'),
+      'href'  => sprintf('user/%d/sshkeys/%s/edit', $object['obj_id'], $object['fingerprint']),
+      'query' => drupal_get_destination(),
+    );
+    $operations['delete'] = array(
+      'title' => t('Delete'),
+      'href'  => sprintf('user/%d/sshkeys/%s/delete', $object['obj_id'], $object['fingerprint']),
+      'query' => drupal_get_destination(),
+    );
+    
+    return $operations;
+  }
 }
 
 /**
@@ -188,11 +209,12 @@ function sshkey_edit_keys_access($account, $key=NULL) {
  * @param int $uid
  * @return array
  */
-function sshkey_user_public_keys_list($uid) {
+function sshkey_user_public_keys_list($type, $id) {
   $keys = array();
 
-  $res = db_query("SELECT * FROM {sshkey} WHERE uid=%d", array(
-    ':uid' => $uid,
+  $res = db_query("SELECT * FROM {sshkey} WHERE obj_type = '%s' AND obj_id = %d", array(
+    ':obj_type' => $type,
+    ':obj_id' => $id,
   ));
   while ($key = db_fetch_array($res)) {
     $keys[] = $key;
@@ -234,7 +256,7 @@ function sshkey_public_key_load($fingerprint) {
  *  SSHKEY_DUPLICATE_KEY_ERROR) or if the public key can't be parsed (error
  *  code SSHKEY_PARSE_ERROR).
  */
-function sshkey_public_key_save($uid, $pubkey, $name=NULL) {
+function sshkey_public_key_save($type, $id, $pubkey, $name = NULL) {
   module_load_include('inc', 'sshkey');
   $pubkey = sshkey_public_key_parse($pubkey);
 
@@ -253,7 +275,8 @@ function sshkey_public_key_save($uid, $pubkey, $name=NULL) {
   $record = array(
     'fingerprint' => $pubkey['fingerprint'],
     'name' => $name,
-    'uid' => $uid,
+    'obj_type' => $type,
+    'obj_id' => $id,
     'created' => time(),
   );
   drupal_write_record('sshkey', $record);
