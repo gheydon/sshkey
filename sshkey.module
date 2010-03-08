@@ -131,7 +131,10 @@ function theme_sshkey_table($header, $rows, $attributes = array(), $caption = NU
  */
 function sshkey_get_key_directory() {
   $default = file_directory_path() . '/sshkeys';
-  return variable_get('sshkey_key_directory', $default);
+  $path = variable_get('sshkey_key_directory', $default);
+  file_check_directory($path, FILE_CREATE_DIRECTORY);
+  
+  return $path;
 }
 
 /**
@@ -337,7 +340,9 @@ function sshkey_public_key_delete($fingerprint) {
     db_query("DELETE FROM {sshkey} WHERE fingerprint='%s'", array(
       ':fingerprint' => $fingerprint,
     ));
-    unlink(sshkey_path_to_public_key($fingerprint));
+    if (file_exists(sshkey_path_to_public_key($fingerprint))) {
+      unlink(sshkey_path_to_public_key($fingerprint));
+    }
 
     module_invoke_all('sshkey_public_key_deleted', $key);
   }
