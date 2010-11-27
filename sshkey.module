@@ -258,7 +258,10 @@ function sshkey_public_key_load($fingerprint) {
  */
 function sshkey_public_key_save($type, $id, $pubkey, $name = NULL) {
   module_load_include('inc', 'sshkey');
-  $pubkey = sshkey_public_key_parse($pubkey);
+
+  if (is_string($pubkey)) {
+    $pubkey = sshkey_public_key_parse($pubkey);
+  }
 
   if (empty($name)) {
     $name = $pubkey['comment'];
@@ -270,6 +273,13 @@ function sshkey_public_key_save($type, $id, $pubkey, $name = NULL) {
   $exists = sshkey_public_key_load($pubkey['fingerprint']);
   if ($exists) {
     throw new Exception('The public key is already registered', SSHKEY_DUPLICATE_KEY_ERROR);
+  }
+
+  $dir = sshkey_get_key_directory();
+  if (!file_exists($dir)) {
+    if(!mkdir($dir)) {
+      throw new Exception('Could not create the sshkey directory', SSHKEY_ACCESS_DENIED);
+    }
   }
 
   $record = array(
